@@ -1,0 +1,62 @@
+import { z } from "zod";
+import type { OdooClient } from "../odoo-client.js";
+
+export const nameSearchTool = {
+  name: "name_search",
+  description:
+    "Search records by name with autocomplete-style matching. Returns [id, display_name] pairs. Useful for finding records by partial name before creating relational links.",
+  inputSchema: {
+    model: z.string().describe("Odoo model name (e.g., 'res.partner')"),
+    name: z
+      .string()
+      .optional()
+      .describe("Name or partial name to search for. Default: '' (all)"),
+    domain: z
+      .string()
+      .optional()
+      .describe(
+        'Additional domain filter as JSON array (e.g., \'[["is_company","=",true]]\'). Default: []'
+      ),
+    operator: z
+      .string()
+      .optional()
+      .describe(
+        "Comparison operator for name matching: 'ilike', 'like', '=', 'not ilike', etc. Default: 'ilike'"
+      ),
+    limit: z
+      .number()
+      .optional()
+      .describe("Maximum number of results. Default: 10"),
+  },
+};
+
+export async function handleNameSearch(
+  client: OdooClient,
+  args: Record<string, unknown>
+) {
+  const model = args.model as string;
+  const name = (args.name as string) || "";
+  const domain = args.domain ? JSON.parse(args.domain as string) : [];
+  const operator = (args.operator as string) || "ilike";
+  const limit = (args.limit as number) ?? 10;
+
+  const result = await client.nameSearch(model, name, domain, operator, limit);
+
+  const records = (result as [number, string][]).map(([id, displayName]) => ({
+    id,
+    display_name: displayName,
+  }));
+
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(
+          { model, count: records.length, records },
+          null,
+          2
+        ),
+      },
+    ],
+  };
+}
