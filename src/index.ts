@@ -18,6 +18,10 @@ async function main() {
   const user = process.env.ODOO_USER;
   const password = process.env.ODOO_PASSWORD;
 
+  const timeout = process.env.ODOO_TIMEOUT
+    ? parseInt(process.env.ODOO_TIMEOUT) * 1000
+    : undefined;
+
   if (!url || !db) {
     console.error("ODOO_URL and ODOO_DB environment variables are required.");
     process.exit(1);
@@ -30,7 +34,7 @@ async function main() {
     process.exit(1);
   }
 
-  const odoo = new OdooClient({ url, db, apiKey, user, password });
+  const odoo = new OdooClient({ url, db, apiKey, user, password }, timeout);
 
   try {
     await odoo.connect();
