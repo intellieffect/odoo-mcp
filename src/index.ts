@@ -18,9 +18,15 @@ async function main() {
   const user = process.env.ODOO_USER;
   const password = process.env.ODOO_PASSWORD;
 
-  const timeout = process.env.ODOO_TIMEOUT
-    ? parseInt(process.env.ODOO_TIMEOUT) * 1000
-    : undefined;
+  let timeout: number | undefined;
+  if (process.env.ODOO_TIMEOUT) {
+    const parsed = parseInt(process.env.ODOO_TIMEOUT);
+    if (isNaN(parsed) || parsed <= 0) {
+      console.error("ODOO_TIMEOUT must be a positive number (seconds). Got:", process.env.ODOO_TIMEOUT);
+      process.exit(1);
+    }
+    timeout = parsed * 1000;
+  }
 
   if (!url || !db) {
     console.error("ODOO_URL and ODOO_DB environment variables are required.");

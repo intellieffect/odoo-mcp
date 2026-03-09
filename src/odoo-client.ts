@@ -63,7 +63,7 @@ export class OdooClient {
 
     if (apiKey) {
       // With API key, we need to authenticate to get the uid
-      const commonClient = createClient(url, "/xmlrpc/2/common");
+      const commonClient = createClient(url, "/xmlrpc/2/common", this.timeoutMs);
       const uid = (await call(commonClient, "authenticate", [
         db,
         user || "",
@@ -79,7 +79,7 @@ export class OdooClient {
 
       this.config = { url, db, uid, password: apiKey };
     } else if (user && password) {
-      const commonClient = createClient(url, "/xmlrpc/2/common");
+      const commonClient = createClient(url, "/xmlrpc/2/common", this.timeoutMs);
       const uid = (await call(commonClient, "authenticate", [
         db,
         user,
