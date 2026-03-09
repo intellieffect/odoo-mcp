@@ -96,15 +96,27 @@ export const uploadAttachmentTool = {
   },
 };
 
+const BASE64_REGEX = /^[A-Za-z0-9+/\n\r]+=*$/;
+
 export async function handleUploadAttachment(
   client: OdooClient,
   args: Record<string, unknown>
 ) {
+  const data = args.data as string;
+
+  // base64 유효성 검증
+  if (!BASE64_REGEX.test(data.replace(/\s/g, ""))) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "유효하지 않은 base64 데이터입니다" }, null, 2) }],
+      isError: true,
+    };
+  }
+
   const values: Record<string, unknown> = {
     name: args.name,
     res_model: args.model,
     res_id: args.res_id,
-    datas: args.data,
+    datas: data,
     type: "binary",
   };
 
@@ -136,30 +148,66 @@ export const downloadAttachmentTool = {
   },
 };
 
+const MAX_DOWNLOAD_SIZE_MB = 25;
+const MAX_DOWNLOAD_SIZE_BYTES = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
+
 export async function handleDownloadAttachment(
   client: OdooClient,
   args: Record<string, unknown>
 ) {
   const id = args.id as number;
 
+  // 먼저 메타데이터만 조회하여 파일 크기 확인
+  const metaRecords = (await client.read("ir.attachment", [id], [
+    "name",
+    "mimetype",
+    "file_size",
+  ])) as Record<string, unknown>[];
+
+  if (!metaRecords || metaRecords.length === 0) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ error: `첨부파일 ID ${id}를 찾을 수 없습니다` }, null, 2),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  const meta = metaRecords[0];
+  const fileSize = meta.file_size as number;
+
+  if (fileSize > MAX_DOWNLOAD_SIZE_BYTES) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              error: `파일이 너무 큽니다 (${(fileSize / 1024 / 1024).toFixed(1)}MB). 최대 ${MAX_DOWNLOAD_SIZE_MB}MB까지 다운로드 가능합니다`,
+              id,
+              name: meta.name,
+              mimetype: meta.mimetype,
+              file_size: fileSize,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  // 크기 확인 후 실제 데이터 조회
   const records = (await client.read("ir.attachment", [id], [
     "name",
     "mimetype",
     "file_size",
     "datas",
   ])) as Record<string, unknown>[];
-
-  if (!records || records.length === 0) {
-    return {
-      content: [
-        {
-          type: "text" as const,
-          text: JSON.stringify({ error: `Attachment ${id} not found` }, null, 2),
-        },
-      ],
-      isError: true,
-    };
-  }
 
   const attachment = records[0];
   return {
