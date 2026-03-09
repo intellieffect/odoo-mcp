@@ -5,10 +5,12 @@ import type {
   OdooDomain,
 } from "./types.js";
 
-function createClient(url: string, path: string) {
+const DEFAULT_TIMEOUT_MS = 30000;
+
+function createClient(url: string, path: string, timeoutMs?: number) {
   const parsed = new URL(path, url);
   const isSecure = parsed.protocol === "https:";
-  const options = {
+  const options: Record<string, unknown> = {
     host: parsed.hostname,
     port: parsed.port
       ? parseInt(parsed.port)
@@ -17,9 +19,20 @@ function createClient(url: string, path: string) {
         : 80,
     path: parsed.pathname,
   };
-  return isSecure
+  const client = isSecure
     ? xmlrpc.createSecureClient(options)
     : xmlrpc.createClient(options);
+
+  // Set request timeout
+  const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  if (timeout > 0) {
+    (client as unknown as Record<string, unknown>).options = {
+      ...((client as unknown as Record<string, Record<string, unknown>>).options || {}),
+      timeout,
+    };
+  }
+
+  return client;
 }
 
 function call(
@@ -38,9 +51,11 @@ function call(
 export class OdooClient {
   private config: OdooConfig | null = null;
   private params: OdooConnectionParams;
+  private timeoutMs: number;
 
-  constructor(params: OdooConnectionParams) {
+  constructor(params: OdooConnectionParams, timeoutMs?: number) {
     this.params = params;
+    this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   async connect(): Promise<void> {
@@ -48,7 +63,7 @@ export class OdooClient {
 
     if (apiKey) {
       // With API key, we need to authenticate to get the uid
-      const commonClient = createClient(url, "/xmlrpc/2/common");
+      const commonClient = createClient(url, "/xmlrpc/2/common", this.timeoutMs);
       const uid = (await call(commonClient, "authenticate", [
         db,
         user || "",
@@ -64,7 +79,7 @@ export class OdooClient {
 
       this.config = { url, db, uid, password: apiKey };
     } else if (user && password) {
-      const commonClient = createClient(url, "/xmlrpc/2/common");
+      const commonClient = createClient(url, "/xmlrpc/2/common", this.timeoutMs);
       const uid = (await call(commonClient, "authenticate", [
         db,
         user,
@@ -88,7 +103,7 @@ export class OdooClient {
 
   private getObjectClient() {
     if (!this.config) throw new Error("Not connected. Call connect() first.");
-    return createClient(this.config.url, "/xmlrpc/2/object");
+    return createClient(this.config.url, "/xmlrpc/2/object", this.timeoutMs);
   }
 
   private async execute(
