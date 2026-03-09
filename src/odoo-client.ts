@@ -200,6 +200,28 @@ export class OdooClient {
     );
   }
 
+  async readGroup(
+    model: string,
+    domain: OdooDomain = [],
+    fields: string[],
+    groupby: string[],
+    orderby?: string,
+    limit?: number,
+    lazy?: boolean
+  ): Promise<unknown[]> {
+    const kwargs: Record<string, unknown> = {};
+    if (orderby) kwargs.orderby = orderby;
+    if (limit !== undefined) kwargs.limit = limit;
+    if (lazy !== undefined) kwargs.lazy = lazy;
+
+    return (await this.execute(
+      model,
+      "read_group",
+      [domain, fields, groupby],
+      kwargs
+    )) as unknown[];
+  }
+
   async getFields(
     model: string,
     attributes?: string[]
