@@ -1,0 +1,44 @@
+{
+  "name": "odoo-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for Odoo ERP — standard XML-RPC, no addons required",
+  "author": "intellieffect",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "odoo-mcp": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "odoo",
+    "mcp",
+    "model-context-protocol",
+    "erp",
+    "xml-rpc",
+    "ai",
+    "llm"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/intellieffect/odoo-mcp.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.8.0",
+    "xmlrpc": "^1.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/xmlrpc": "^1.3.10",
+    "tsup": "^8.0.0",
+    "typescript": "^5.7.0"
+  }
+}
