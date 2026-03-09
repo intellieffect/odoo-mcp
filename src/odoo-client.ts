@@ -181,6 +181,17 @@ export class OdooClient {
     );
   }
 
+  async executeMethod(
+    model: string,
+    method: string,
+    ids: number[],
+    args: unknown[] = [],
+    kwargs: Record<string, unknown> = {}
+  ): Promise<unknown> {
+    const callArgs: unknown[] = ids.length > 0 ? [ids, ...args] : [...args];
+    return this.execute(model, method, callArgs, kwargs);
+  }
+
   async getFields(
     model: string,
     attributes?: string[]
