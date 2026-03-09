@@ -72,6 +72,10 @@ export async function handleSearchCalendar(
 
   if (!allEvents) {
     const partnerId = await client.getPartnerId();
+    const uid = client.uid;
+    // 주최자(user_id)가 나이거나, 참석자(partner_ids)에 내가 포함된 일정
+    domain.push("|");
+    domain.push(["user_id", "=", uid]);
     domain.push(["partner_ids", "in", [partnerId]]);
   }
 
