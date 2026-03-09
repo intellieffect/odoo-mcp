@@ -2,6 +2,20 @@ import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
 import type { OdooDomain } from "../types.js";
 
+function stripHtml(html: string): string {
+  return html
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
 export const getMessagesTool = {
   name: "get_messages",
   description:
@@ -20,6 +34,12 @@ export const getMessagesTool = {
       .optional()
       .describe(
         "Filter by message type: 'comment', 'notification', 'email', 'user_notification'. Default: all"
+      ),
+    strip_html: z
+      .boolean()
+      .optional()
+      .describe(
+        "If true, strip HTML tags from message body and return plain text. Default: false"
       ),
   },
 };
@@ -42,6 +62,8 @@ export async function handleGetMessages(
     domain.push(["message_type", "=", messageType]);
   }
 
+  const shouldStripHtml = (args.strip_html as boolean) ?? false;
+
   const messages = await client.searchRead(
     "mail.message",
     domain,
@@ -58,12 +80,19 @@ export async function handleGetMessages(
     "date desc"
   );
 
+  const processed = shouldStripHtml
+    ? (messages as Record<string, unknown>[]).map((msg) => ({
+        ...msg,
+        body: typeof msg.body === "string" ? stripHtml(msg.body) : msg.body,
+      }))
+    : messages;
+
   return {
     content: [
       {
         type: "text" as const,
         text: JSON.stringify(
-          { model, res_id: resId, count: (messages as unknown[]).length, messages },
+          { model, res_id: resId, count: (processed as unknown[]).length, messages: processed },
           null,
           2
         ),
