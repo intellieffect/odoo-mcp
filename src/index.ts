@@ -10,6 +10,11 @@ import { deleteRecordTool, handleDeleteRecord } from "./tools/delete.js";
 import { countRecordsTool, handleCountRecords } from "./tools/count.js";
 import { listModelsTool, handleListModels } from "./tools/models.js";
 import { getFieldsTool, handleGetFields } from "./tools/fields.js";
+import {
+  listAttachmentsTool, handleListAttachments,
+  uploadAttachmentTool, handleUploadAttachment,
+  downloadAttachmentTool, handleDownloadAttachment,
+} from "./tools/attachment.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -54,6 +59,9 @@ async function main() {
     { def: countRecordsTool, handler: handleCountRecords },
     { def: listModelsTool, handler: handleListModels },
     { def: getFieldsTool, handler: handleGetFields },
+    { def: listAttachmentsTool, handler: handleListAttachments },
+    { def: uploadAttachmentTool, handler: handleUploadAttachment },
+    { def: downloadAttachmentTool, handler: handleDownloadAttachment },
   ];
 
   for (const { def, handler } of tools) {
