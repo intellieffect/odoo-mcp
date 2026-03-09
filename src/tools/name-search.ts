@@ -36,11 +36,29 @@ export async function handleNameSearch(
 ) {
   const model = args.model as string;
   const name = (args.name as string) || "";
-  const domain = args.domain ? JSON.parse(args.domain as string) : [];
   const operator = (args.operator as string) || "ilike";
   const limit = (args.limit as number) ?? 10;
 
+  let domain: unknown[] = [];
+  if (args.domain) {
+    try {
+      domain = JSON.parse(args.domain as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+  }
+
   const result = await client.nameSearch(model, name, domain, operator, limit);
+
+  if (!Array.isArray(result)) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "예상치 못한 응답 형식", raw: result }, null, 2) }],
+      isError: true,
+    };
+  }
 
   const records = (result as [number, string][]).map(([id, displayName]) => ({
     id,
