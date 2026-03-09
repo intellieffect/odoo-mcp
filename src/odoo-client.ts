@@ -232,6 +232,21 @@ export class OdooClient {
     )) as unknown[];
   }
 
+  async nameSearch(
+    model: string,
+    name: string = "",
+    domain: OdooDomain = [],
+    operator: string = "ilike",
+    limit: number = 10
+  ): Promise<unknown> {
+    return this.execute(model, "name_search", [], {
+      name,
+      args: domain,
+      operator,
+      limit,
+    });
+  }
+
   async getFields(
     model: string,
     attributes?: string[]
