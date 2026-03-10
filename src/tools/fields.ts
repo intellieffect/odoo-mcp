@@ -16,6 +16,8 @@ export const getFieldsTool = {
   },
 };
 
+const DEFAULT_ATTRIBUTES = ["string", "type", "required", "readonly", "relation", "selection"];
+
 export async function handleGetFields(
   client: OdooClient,
   args: Record<string, unknown>
@@ -23,7 +25,7 @@ export async function handleGetFields(
   const model = args.model as string;
   const attributes = args.attributes
     ? (args.attributes as string).split(",").map((a) => a.trim())
-    : undefined;
+    : DEFAULT_ATTRIBUTES;
 
   const fields = await client.getFields(model, attributes);
   return {
