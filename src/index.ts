@@ -11,6 +11,77 @@ import { countRecordsTool, handleCountRecords } from "./tools/count.js";
 import { listModelsTool, handleListModels } from "./tools/models.js";
 import { getFieldsTool, handleGetFields } from "./tools/fields.js";
 
+function classifyError(message: string): {
+  error_type: string;
+  error: string;
+  detail?: string;
+} {
+  const lowerMsg = message.toLowerCase();
+
+  if (lowerMsg.includes("doesn't exist") || lowerMsg.includes("does not exist")) {
+    const modelMatch = message.match(/Object (\S+) doesn't exist/);
+    return {
+      error_type: "model_not_found",
+      error: modelMatch
+        ? `모델 '${modelMatch[1]}'을(를) 찾을 수 없습니다. 모델명을 확인하거나 접근 권한을 확인하세요.`
+        : "모델을 찾을 수 없습니다. 모델명 또는 접근 권한을 확인하세요.",
+      detail: message,
+    };
+  }
+
+  if (lowerMsg.includes("access denied") || lowerMsg.includes("accesserror")) {
+    return {
+      error_type: "access_denied",
+      error: "접근 권한이 없습니다. 현재 사용자의 권한을 확인하세요.",
+      detail: message,
+    };
+  }
+
+  if (lowerMsg.includes("invalid field")) {
+    const fieldMatch = message.match(/Invalid field '(\S+?)'/);
+    const modelMatch = message.match(/on '(\S+?)'/);
+    return {
+      error_type: "field_not_found",
+      error: fieldMatch
+        ? `필드 '${fieldMatch[1]}'이(가) 모델${modelMatch ? ` '${modelMatch[1]}'` : ""}에 존재하지 않습니다. get_fields로 사용 가능한 필드를 확인하세요.`
+        : "존재하지 않는 필드입니다. get_fields로 사용 가능한 필드를 확인하세요.",
+      detail: message,
+    };
+  }
+
+  if (lowerMsg.includes("validationerror") || lowerMsg.includes("validation error")) {
+    return {
+      error_type: "validation_error",
+      error: "데이터 검증 오류가 발생했습니다.",
+      detail: message,
+    };
+  }
+
+  if (lowerMsg.includes("authentication failed")) {
+    return {
+      error_type: "auth_failed",
+      error: "인증에 실패했습니다. ODOO_URL, ODOO_DB, 인증 정보를 확인하세요.",
+      detail: message,
+    };
+  }
+
+  // Traceback이 포함된 긴 에러 → 핵심만 추출
+  if (message.includes("Traceback")) {
+    const lines = message.split("\n");
+    const lastLine = lines.filter((l) => l.trim() && !l.startsWith(" ")).pop() || message;
+    return {
+      error_type: "server_error",
+      error: `Odoo 서버 에러: ${lastLine.replace(/^.*?Error:\s*/, "").trim()}`,
+      detail: message.length > 500 ? message.slice(-500) : message,
+    };
+  }
+
+  return {
+    error_type: "unknown",
+    error: message,
+  };
+}
+
 async function main() {
   const url = process.env.ODOO_URL;
   const db = process.env.ODOO_DB;
@@ -61,15 +132,13 @@ async function main() {
       try {
         return await handler(odoo, args as Record<string, unknown>);
       } catch (err) {
+        const message = (err as Error).message || String(err);
+        const classified = classifyError(message);
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { error: (err as Error).message },
-                null,
-                2
-              ),
+              text: JSON.stringify(classified, null, 2),
             },
           ],
           isError: true,
