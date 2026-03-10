@@ -110,6 +110,15 @@ export class OdooClient {
     ]);
   }
 
+  async callMethod(
+    model: string,
+    method: string,
+    args: unknown[],
+    kwargs: Record<string, unknown> = {}
+  ): Promise<unknown> {
+    return this.execute(model, method, args, kwargs);
+  }
+
   async nameSearch(
     model: string,
     name: string,

@@ -17,6 +17,7 @@ import {
   uploadAttachmentTool, handleUploadAttachment,
   downloadAttachmentTool, handleDownloadAttachment,
 } from "./tools/attachment.js";
+import { getMessagesTool, handleGetMessages, postMessageTool, handlePostMessage } from "./tools/message.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -66,6 +67,8 @@ async function main() {
     { def: listAttachmentsTool, handler: handleListAttachments },
     { def: uploadAttachmentTool, handler: handleUploadAttachment },
     { def: downloadAttachmentTool, handler: handleDownloadAttachment },
+    { def: getMessagesTool, handler: handleGetMessages },
+    { def: postMessageTool, handler: handlePostMessage },
   ];
 
   for (const { def, handler } of tools) {
