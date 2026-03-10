@@ -56,18 +56,17 @@ export async function handleSearchRecords(
   const offset = (args.offset as number) ?? 0;
   const order = args.order as string | undefined;
 
-  // total_count 조회 (페이지네이션 안내용)
-  const totalCount = await client.count(model, domain);
-  const records = await client.searchRead(model, domain, fields, limit, offset, order);
-  const hasMore = offset + (records as unknown[]).length < totalCount;
+  // limit+1로 조회하여 has_more 판단 (count RPC 호출 제거)
+  const records = (await client.searchRead(model, domain, fields, limit + 1, offset, order)) as unknown[];
+  const hasMore = records.length > limit;
+  if (hasMore) records.pop(); // 초과분 제거
 
   return {
     content: [
       {
         type: "text" as const,
         text: JSON.stringify({
-          count: (records as unknown[]).length,
-          total_count: totalCount,
+          count: records.length,
           offset,
           limit,
           has_more: hasMore,

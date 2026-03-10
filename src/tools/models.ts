@@ -25,30 +25,35 @@ export async function handleListModels(
   client: OdooClient,
   args: Record<string, unknown>
 ) {
-  const records = (await client.listModels()) as Array<Record<string, unknown>>;
   const filter = args.filter as string | undefined;
   const includeTransient = (args.include_transient as boolean) ?? false;
 
-  let models = records.map((r) => ({
+  // 서버사이드 필터링 domain 구성
+  const domain: unknown[] = [];
+  if (!includeTransient) {
+    domain.push(["transient", "=", false]);
+  }
+  if (filter) {
+    domain.push("|");
+    domain.push(["model", "ilike", filter]);
+    domain.push(["name", "ilike", filter]);
+  }
+
+  const records = (await client.searchRead(
+    "ir.model",
+    domain,
+    ["model", "name", "state", "transient"],
+    undefined,
+    undefined,
+    "model"
+  )) as Array<Record<string, unknown>>;
+
+  const models = records.map((r) => ({
     model: r.model,
     name: r.name,
     state: r.state,
     transient: r.transient,
   }));
-
-  // 기본: transient 모델 제외
-  if (!includeTransient) {
-    models = models.filter((m) => !m.transient);
-  }
-
-  if (filter) {
-    const f = filter.toLowerCase();
-    models = models.filter(
-      (m) =>
-        (m.model as string).toLowerCase().includes(f) ||
-        (m.name as string).toLowerCase().includes(f)
-    );
-  }
 
   return {
     content: [
