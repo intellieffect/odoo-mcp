@@ -38,6 +38,7 @@ function call(
 export class OdooClient {
   private config: OdooConfig | null = null;
   private params: OdooConnectionParams;
+  private objectClient: xmlrpc.Client | null = null;
 
   constructor(params: OdooConnectionParams) {
     this.params = params;
@@ -88,7 +89,10 @@ export class OdooClient {
 
   private getObjectClient() {
     if (!this.config) throw new Error("Not connected. Call connect() first.");
-    return createClient(this.config.url, "/xmlrpc/2/object");
+    if (!this.objectClient) {
+      this.objectClient = createClient(this.config.url, "/xmlrpc/2/object");
+    }
+    return this.objectClient;
   }
 
   private async execute(
