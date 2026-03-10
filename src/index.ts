@@ -10,6 +10,15 @@ import { deleteRecordTool, handleDeleteRecord } from "./tools/delete.js";
 import { countRecordsTool, handleCountRecords } from "./tools/count.js";
 import { listModelsTool, handleListModels } from "./tools/models.js";
 import { getFieldsTool, handleGetFields } from "./tools/fields.js";
+import { searchGroupedTool, handleSearchGrouped } from "./tools/group.js";
+import { nameSearchTool, handleNameSearch } from "./tools/name-search.js";
+import {
+  listAttachmentsTool, handleListAttachments,
+  uploadAttachmentTool, handleUploadAttachment,
+  downloadAttachmentTool, handleDownloadAttachment,
+} from "./tools/attachment.js";
+import { getMessagesTool, handleGetMessages, postMessageTool, handlePostMessage } from "./tools/message.js";
+import { searchCalendarTool, handleSearchCalendar } from "./tools/calendar.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -54,6 +63,14 @@ async function main() {
     { def: countRecordsTool, handler: handleCountRecords },
     { def: listModelsTool, handler: handleListModels },
     { def: getFieldsTool, handler: handleGetFields },
+    { def: searchGroupedTool, handler: handleSearchGrouped },
+    { def: nameSearchTool, handler: handleNameSearch },
+    { def: listAttachmentsTool, handler: handleListAttachments },
+    { def: uploadAttachmentTool, handler: handleUploadAttachment },
+    { def: downloadAttachmentTool, handler: handleDownloadAttachment },
+    { def: getMessagesTool, handler: handleGetMessages },
+    { def: postMessageTool, handler: handlePostMessage },
+    { def: searchCalendarTool, handler: handleSearchCalendar },
   ];
 
   for (const { def, handler } of tools) {

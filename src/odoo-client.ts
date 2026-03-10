@@ -43,6 +43,11 @@ export class OdooClient {
     this.params = params;
   }
 
+  getUid(): number {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    return this.config.uid;
+  }
+
   async connect(): Promise<void> {
     const { url, db, apiKey, user, password } = this.params;
 
@@ -108,6 +113,52 @@ export class OdooClient {
       args,
       kwargs,
     ]);
+  }
+
+  async callMethod(
+    model: string,
+    method: string,
+    args: unknown[],
+    kwargs: Record<string, unknown> = {}
+  ): Promise<unknown> {
+    return this.execute(model, method, args, kwargs);
+  }
+
+  async nameSearch(
+    model: string,
+    name: string,
+    domain: OdooDomain = [],
+    operator: string = "ilike",
+    limit: number = 10
+  ): Promise<unknown[]> {
+    return (await this.execute(
+      model,
+      "name_search",
+      [name],
+      { domain, operator, limit }
+    )) as unknown[];
+  }
+
+  async readGroup(
+    model: string,
+    domain: OdooDomain = [],
+    fields: string[],
+    groupby: string[],
+    orderby?: string,
+    limit?: number,
+    lazy?: boolean
+  ): Promise<unknown[]> {
+    const kwargs: Record<string, unknown> = {};
+    if (orderby) kwargs.orderby = orderby;
+    if (limit !== undefined) kwargs.limit = limit;
+    if (lazy !== undefined) kwargs.lazy = lazy;
+
+    return (await this.execute(
+      model,
+      "read_group",
+      [domain, fields, groupby],
+      kwargs
+    )) as unknown[];
   }
 
   async searchRead(
