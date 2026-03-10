@@ -43,6 +43,11 @@ export class OdooClient {
     this.params = params;
   }
 
+  getUid(): number {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    return this.config.uid;
+  }
+
   async connect(): Promise<void> {
     const { url, db, apiKey, user, password } = this.params;
 

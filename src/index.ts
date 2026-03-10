@@ -18,6 +18,7 @@ import {
   downloadAttachmentTool, handleDownloadAttachment,
 } from "./tools/attachment.js";
 import { getMessagesTool, handleGetMessages, postMessageTool, handlePostMessage } from "./tools/message.js";
+import { searchCalendarTool, handleSearchCalendar } from "./tools/calendar.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -69,6 +70,7 @@ async function main() {
     { def: downloadAttachmentTool, handler: handleDownloadAttachment },
     { def: getMessagesTool, handler: handleGetMessages },
     { def: postMessageTool, handler: handlePostMessage },
+    { def: searchCalendarTool, handler: handleSearchCalendar },
   ];
 
   for (const { def, handler } of tools) {
