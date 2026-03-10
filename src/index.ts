@@ -30,7 +30,11 @@ async function main() {
     process.exit(1);
   }
 
-  const odoo = new OdooClient({ url, db, apiKey, user, password });
+  const timeout = process.env.ODOO_TIMEOUT
+    ? parseInt(process.env.ODOO_TIMEOUT, 10) * 1000
+    : undefined;
+
+  const odoo = new OdooClient({ url, db, apiKey, user, password, timeout });
 
   try {
     await odoo.connect();

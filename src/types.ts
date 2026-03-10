@@ -11,6 +11,7 @@ export interface OdooConnectionParams {
   apiKey?: string;
   user?: string;
   password?: string;
+  timeout?: number; // ms, default 30000
 }
 
 export type OdooDomain = Array<string | [string, string, unknown]>;
