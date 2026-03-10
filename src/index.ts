@@ -20,6 +20,7 @@ import {
   downloadAttachmentTool, handleDownloadAttachment,
 } from "./tools/attachment.js";
 import { searchCalendarTool, handleSearchCalendar } from "./tools/calendar.js";
+import { whoamiTool, handleWhoami } from "./tools/whoami.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -86,6 +87,7 @@ async function main() {
     { def: uploadAttachmentTool, handler: handleUploadAttachment },
     { def: downloadAttachmentTool, handler: handleDownloadAttachment },
     { def: searchCalendarTool, handler: handleSearchCalendar },
+    { def: whoamiTool, handler: handleWhoami },
   ];
 
   for (const { def, handler } of tools) {
