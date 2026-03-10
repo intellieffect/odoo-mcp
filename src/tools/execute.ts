@@ -38,7 +38,11 @@ export async function handleExecuteMethod(
 ) {
   const model = params.model as string;
   const method = params.method as string;
-  const ids = (params.ids as string).split(",").map((id) => parseInt(id.trim(), 10));
+  const ids = (params.ids as string).split(",").map((s) => {
+    const id = parseInt(s.trim(), 10);
+    if (isNaN(id)) throw new Error(`Invalid record ID: "${s.trim()}"`);
+    return id;
+  });
 
   let args: unknown[] = [];
   if (params.args) {
