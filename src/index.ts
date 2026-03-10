@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { OdooClient } from "./odoo-client.js";
+import { classifyError } from "./errors.js";
 
 import { searchRecordsTool, handleSearchRecords } from "./tools/search.js";
 import { readRecordTool, handleReadRecord } from "./tools/read.js";
@@ -65,15 +66,12 @@ async function main() {
       try {
         return await handler(odoo, args as Record<string, unknown>);
       } catch (err) {
+        const classified = classifyError(err as Error);
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { error: (err as Error).message },
-                null,
-                2
-              ),
+              text: JSON.stringify(classified, null, 2),
             },
           ],
           isError: true,
