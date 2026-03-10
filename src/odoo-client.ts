@@ -49,11 +49,13 @@ export class OdooClient {
   }
 
   getDb(): string {
-    return this.params.db!;
+    if (!this.params.db) throw new Error("ODOO_DB is not configured.");
+    return this.params.db;
   }
 
   getUrl(): string {
-    return this.params.url!;
+    if (!this.params.url) throw new Error("ODOO_URL is not configured.");
+    return this.params.url;
   }
 
   async getVersion(): Promise<Record<string, unknown>> {
