@@ -72,7 +72,35 @@ export async function handleExecuteMethod(
     }
   }
 
-  const result = await odoo.executeMethod(model, method, ids, args, kwargs);
+  let result: unknown;
+  try {
+    result = await odoo.executeMethod(model, method, ids, args, kwargs);
+  } catch (err) {
+    const msg = (err as Error).message || "";
+    if (msg.includes("cannot marshal None")) {
+      // Method executed successfully but returned None,
+      // which XML-RPC cannot serialize. Treat as success.
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: JSON.stringify(
+              {
+                model,
+                method,
+                ids,
+                result: null,
+                note: "Method executed successfully (returned None)",
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+    throw err;
+  }
 
   return {
     content: [
