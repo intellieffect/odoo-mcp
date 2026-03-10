@@ -43,6 +43,24 @@ export class OdooClient {
     this.params = params;
   }
 
+  getUid(): number {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    return this.config.uid;
+  }
+
+  getDb(): string {
+    return this.params.db!;
+  }
+
+  getUrl(): string {
+    return this.params.url!;
+  }
+
+  async getVersion(): Promise<Record<string, unknown>> {
+    const commonClient = createClient(this.params.url!, "/xmlrpc/2/common");
+    return (await call(commonClient, "version", [])) as Record<string, unknown>;
+  }
+
   async connect(): Promise<void> {
     const { url, db, apiKey, user, password } = this.params;
 
