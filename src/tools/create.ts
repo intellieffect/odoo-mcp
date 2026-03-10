@@ -3,7 +3,7 @@ import type { OdooClient } from "../odoo-client.js";
 
 export const createRecordTool = {
   name: "create_record",
-  description: "Create a new record in an Odoo model.",
+  description: "Create one or more records in an Odoo model. Pass a JSON object for single record, or a JSON array of objects for batch creation.",
   inputSchema: {
     model: z.string().describe("Odoo model name (e.g., 'res.partner')"),
     values: z
@@ -20,6 +20,22 @@ export async function handleCreateRecord(
 ) {
   const model = args.model as string;
   const values = JSON.parse(args.values as string);
+
+  if (Array.isArray(values)) {
+    // Batch create
+    const ids: number[] = [];
+    for (const v of values) {
+      ids.push(await client.create(model, v));
+    }
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ success: true, count: ids.length, ids }, null, 2),
+        },
+      ],
+    };
+  }
 
   const id = await client.create(model, values);
   return {
