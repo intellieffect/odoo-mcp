@@ -12,6 +12,11 @@ import { listModelsTool, handleListModels } from "./tools/models.js";
 import { getFieldsTool, handleGetFields } from "./tools/fields.js";
 import { searchGroupedTool, handleSearchGrouped } from "./tools/group.js";
 import { nameSearchTool, handleNameSearch } from "./tools/name-search.js";
+import {
+  listAttachmentsTool, handleListAttachments,
+  uploadAttachmentTool, handleUploadAttachment,
+  downloadAttachmentTool, handleDownloadAttachment,
+} from "./tools/attachment.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -58,6 +63,9 @@ async function main() {
     { def: getFieldsTool, handler: handleGetFields },
     { def: searchGroupedTool, handler: handleSearchGrouped },
     { def: nameSearchTool, handler: handleNameSearch },
+    { def: listAttachmentsTool, handler: handleListAttachments },
+    { def: uploadAttachmentTool, handler: handleUploadAttachment },
+    { def: downloadAttachmentTool, handler: handleDownloadAttachment },
   ];
 
   for (const { def, handler } of tools) {
