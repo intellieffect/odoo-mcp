@@ -25,6 +25,10 @@ export const searchRecordsTool = {
       .string()
       .optional()
       .describe('Sort order (e.g., "name asc", "create_date desc")'),
+    include_total: z
+      .boolean()
+      .optional()
+      .describe("Include total_count and has_more in response. Default: true. Set false to skip count query for performance."),
   },
 };
 
@@ -43,21 +47,34 @@ export async function handleSearchRecords(
   const offset = args.offset as number | undefined;
   const order = args.order as string | undefined;
 
-  const [records, totalCount] = await Promise.all([
-    client.searchRead(model, domain, fields, limit, offset, order),
-    client.count(model, domain),
-  ]);
+  const includeTotal = (args.include_total as boolean) ?? true;
 
+  if (includeTotal) {
+    const [records, totalCount] = await Promise.all([
+      client.searchRead(model, domain, fields, limit, offset, order),
+      client.count(model, domain),
+    ]);
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({
+            count: records.length,
+            total_count: totalCount,
+            has_more: (offset ?? 0) + records.length < totalCount,
+            records,
+          }, null, 2),
+        },
+      ],
+    };
+  }
+
+  const records = await client.searchRead(model, domain, fields, limit, offset, order);
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify({
-          count: records.length,
-          total_count: totalCount,
-          has_more: (offset ?? 0) + records.length < totalCount,
-          records,
-        }, null, 2),
+        text: JSON.stringify({ count: records.length, records }, null, 2),
       },
     ],
   };

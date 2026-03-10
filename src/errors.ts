@@ -15,7 +15,7 @@ const ERROR_PATTERNS: Array<{
     message: (m) => `모델 '${m[1]}'을(를) 찾을 수 없습니다`,
   },
   {
-    pattern: /Invalid field '?(\w+)'? on '?(\S+?)'?$/m,
+    pattern: /Invalid field '?([\w.]+)'? on '?(\S+?)'?$/m,
     type: "field_not_found",
     message: (m) => `모델 '${m[2]}'에 필드 '${m[1]}'이(가) 존재하지 않습니다`,
   },
