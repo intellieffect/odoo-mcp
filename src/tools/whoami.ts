@@ -36,7 +36,7 @@ export async function handleWhoami(
 
   const user = users[0] || {};
 
-  // 권한 그룹 이름 조회 (주요 그룹만)
+  // 권한 그룹 이름 조회 — 앱 수준 그룹만 (full_name에 "/"가 포함된 것 = 앱/역할 그룹)
   const groupIds = (user.group_ids as number[]) || [];
   let groups: string[] = [];
   if (groupIds.length > 0) {
@@ -48,14 +48,7 @@ export async function handleWhoami(
     )) as Array<Record<string, unknown>>;
     groups = groupRecords
       .map((g) => g.full_name as string)
-      .filter(
-        (name) =>
-          name.includes("Admin") ||
-          name.includes("Manager") ||
-          name.includes("User") ||
-          name.includes("Officer") ||
-          name.includes("Billing")
-      )
+      .filter((name) => name.includes(" / "))  // 앱/역할 그룹만 (내부 기술 그룹 제외)
       .sort();
   }
 

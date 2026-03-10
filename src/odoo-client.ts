@@ -129,10 +129,18 @@ export class OdooClient {
     return this.config.db;
   }
 
-  async getVersion(): Promise<Record<string, unknown>> {
+  private commonClientCached: xmlrpc.Client | null = null;
+
+  private getCommonClient() {
     if (!this.config) throw new Error("Not connected. Call connect() first.");
-    const commonClient = createClient(this.config.url, "/xmlrpc/2/common");
-    return (await call(commonClient, "version", [])) as Record<string, unknown>;
+    if (!this.commonClientCached) {
+      this.commonClientCached = createClient(this.config.url, "/xmlrpc/2/common");
+    }
+    return this.commonClientCached;
+  }
+
+  async getVersion(): Promise<Record<string, unknown>> {
+    return (await call(this.getCommonClient(), "version", [])) as Record<string, unknown>;
   }
 
   private getObjectClient() {
