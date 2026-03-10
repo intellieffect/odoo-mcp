@@ -10,6 +10,7 @@ import { deleteRecordTool, handleDeleteRecord } from "./tools/delete.js";
 import { countRecordsTool, handleCountRecords } from "./tools/count.js";
 import { listModelsTool, handleListModels } from "./tools/models.js";
 import { getFieldsTool, handleGetFields } from "./tools/fields.js";
+import { classifyError } from "./errors.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -61,15 +62,13 @@ async function main() {
       try {
         return await handler(odoo, args as Record<string, unknown>);
       } catch (err) {
+        const message = (err as Error).message || String(err);
+        const classified = classifyError(message);
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify(
-                { error: (err as Error).message },
-                null,
-                2
-              ),
+              text: JSON.stringify(classified, null, 2),
             },
           ],
           isError: true,
