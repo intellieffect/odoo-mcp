@@ -86,6 +86,30 @@ export class OdooClient {
     }
   }
 
+  getUid(): number {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    return this.config.uid;
+  }
+
+  getDatabase(): string {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    return this.config.db;
+  }
+
+  private commonClientCached: xmlrpc.Client | null = null;
+
+  private getCommonClient() {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    if (!this.commonClientCached) {
+      this.commonClientCached = createClient(this.config.url, "/xmlrpc/2/common");
+    }
+    return this.commonClientCached;
+  }
+
+  async getVersion(): Promise<Record<string, unknown>> {
+    return (await call(this.getCommonClient(), "version", [])) as Record<string, unknown>;
+  }
+
   private getObjectClient() {
     if (!this.config) throw new Error("Not connected. Call connect() first.");
     return createClient(this.config.url, "/xmlrpc/2/object");
