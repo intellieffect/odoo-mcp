@@ -22,13 +22,22 @@ function createClient(url: string, path: string) {
     : xmlrpc.createClient(options);
 }
 
+const DEFAULT_TIMEOUT = 30_000;
+
 function call(
   client: xmlrpc.Client,
   method: string,
-  params: unknown[]
+  params: unknown[],
+  timeoutMs?: number
 ): Promise<unknown> {
+  const timeout = timeoutMs ?? DEFAULT_TIMEOUT;
   return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`XML-RPC request timed out after ${timeout}ms`));
+    }, timeout);
+
     client.methodCall(method, params, (err: Error | null, value: unknown) => {
+      clearTimeout(timer);
       if (err) reject(err);
       else resolve(value);
     });
@@ -38,9 +47,12 @@ function call(
 export class OdooClient {
   private config: OdooConfig | null = null;
   private params: OdooConnectionParams;
+  private objectClient: xmlrpc.Client | null = null;
+  private timeout: number;
 
   constructor(params: OdooConnectionParams) {
     this.params = params;
+    this.timeout = params.timeout ?? DEFAULT_TIMEOUT;
   }
 
   async connect(): Promise<void> {
@@ -54,7 +66,7 @@ export class OdooClient {
         user || "",
         apiKey,
         {},
-      ])) as number;
+      ], this.timeout)) as number;
 
       if (!uid) {
         throw new Error(
@@ -70,7 +82,7 @@ export class OdooClient {
         user,
         password,
         {},
-      ])) as number;
+      ], this.timeout)) as number;
 
       if (!uid) {
         throw new Error(
@@ -88,7 +100,10 @@ export class OdooClient {
 
   private getObjectClient() {
     if (!this.config) throw new Error("Not connected. Call connect() first.");
-    return createClient(this.config.url, "/xmlrpc/2/object");
+    if (!this.objectClient) {
+      this.objectClient = createClient(this.config.url, "/xmlrpc/2/object");
+    }
+    return this.objectClient;
   }
 
   private async execute(
@@ -107,7 +122,7 @@ export class OdooClient {
       method,
       args,
       kwargs,
-    ]);
+    ], this.timeout);
   }
 
   async searchRead(

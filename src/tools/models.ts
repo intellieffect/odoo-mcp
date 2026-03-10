@@ -12,6 +12,10 @@ export const listModelsTool = {
       .describe(
         'Optional text filter to match model name or technical name (e.g., "sale", "partner")'
       ),
+    include_transient: z
+      .boolean()
+      .optional()
+      .describe("Include transient (wizard) models. Default: false"),
   },
 };
 
@@ -21,6 +25,7 @@ export async function handleListModels(
 ) {
   const records = (await client.listModels()) as Array<Record<string, unknown>>;
   const filter = args.filter as string | undefined;
+  const includeTransient = (args.include_transient as boolean) ?? false;
 
   let models = records.map((r) => ({
     model: r.model,
@@ -28,6 +33,11 @@ export async function handleListModels(
     state: r.state,
     transient: r.transient,
   }));
+
+  // Filter out transient models by default
+  if (!includeTransient) {
+    models = models.filter((m) => !m.transient);
+  }
 
   if (filter) {
     const f = filter.toLowerCase();
