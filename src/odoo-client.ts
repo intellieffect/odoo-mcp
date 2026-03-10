@@ -49,6 +49,7 @@ export class OdooClient {
   private params: OdooConnectionParams;
   private timeoutMs: number;
   private objectClient: xmlrpc.Client | null = null;
+  private commonClient: xmlrpc.Client | null = null;
 
   constructor(params: OdooConnectionParams, timeoutMs?: number) {
     this.params = params;
@@ -58,10 +59,14 @@ export class OdooClient {
   async connect(): Promise<void> {
     const { url, db, apiKey, user, password } = this.params;
 
+    // commonClient 캐싱
+    if (!this.commonClient) {
+      this.commonClient = createClient(url, "/xmlrpc/2/common");
+    }
+
     if (apiKey) {
       // With API key, we need to authenticate to get the uid
-      const commonClient = createClient(url, "/xmlrpc/2/common");
-      const uid = (await call(commonClient, "authenticate", [
+      const uid = (await call(this.commonClient, "authenticate", [
         db,
         user || "",
         apiKey,
@@ -76,8 +81,7 @@ export class OdooClient {
 
       this.config = { url, db, uid, password: apiKey };
     } else if (user && password) {
-      const commonClient = createClient(url, "/xmlrpc/2/common");
-      const uid = (await call(commonClient, "authenticate", [
+      const uid = (await call(this.commonClient, "authenticate", [
         db,
         user,
         password,
