@@ -38,6 +38,8 @@ function call(
 export class OdooClient {
   private config: OdooConfig | null = null;
   private params: OdooConnectionParams;
+  private objectClient: xmlrpc.Client | null = null;
+  private commonClient: xmlrpc.Client | null = null;
 
   constructor(params: OdooConnectionParams) {
     this.params = params;
@@ -46,10 +48,14 @@ export class OdooClient {
   async connect(): Promise<void> {
     const { url, db, apiKey, user, password } = this.params;
 
+    // commonClient 캐싱
+    if (!this.commonClient) {
+      this.commonClient = createClient(url, "/xmlrpc/2/common");
+    }
+
     if (apiKey) {
       // With API key, we need to authenticate to get the uid
-      const commonClient = createClient(url, "/xmlrpc/2/common");
-      const uid = (await call(commonClient, "authenticate", [
+      const uid = (await call(this.commonClient, "authenticate", [
         db,
         user || "",
         apiKey,
@@ -64,8 +70,7 @@ export class OdooClient {
 
       this.config = { url, db, uid, password: apiKey };
     } else if (user && password) {
-      const commonClient = createClient(url, "/xmlrpc/2/common");
-      const uid = (await call(commonClient, "authenticate", [
+      const uid = (await call(this.commonClient, "authenticate", [
         db,
         user,
         password,
@@ -88,7 +93,10 @@ export class OdooClient {
 
   private getObjectClient() {
     if (!this.config) throw new Error("Not connected. Call connect() first.");
-    return createClient(this.config.url, "/xmlrpc/2/object");
+    if (!this.objectClient) {
+      this.objectClient = createClient(this.config.url, "/xmlrpc/2/object");
+    }
+    return this.objectClient;
   }
 
   private async execute(
