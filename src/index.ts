@@ -11,6 +11,7 @@ import { countRecordsTool, handleCountRecords } from "./tools/count.js";
 import { listModelsTool, handleListModels } from "./tools/models.js";
 import { getFieldsTool, handleGetFields } from "./tools/fields.js";
 import { searchGroupedTool, handleSearchGrouped } from "./tools/group.js";
+import { nameSearchTool, handleNameSearch } from "./tools/name-search.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -56,6 +57,7 @@ async function main() {
     { def: listModelsTool, handler: handleListModels },
     { def: getFieldsTool, handler: handleGetFields },
     { def: searchGroupedTool, handler: handleSearchGrouped },
+    { def: nameSearchTool, handler: handleNameSearch },
   ];
 
   for (const { def, handler } of tools) {

@@ -110,6 +110,21 @@ export class OdooClient {
     ]);
   }
 
+  async nameSearch(
+    model: string,
+    name: string,
+    domain: OdooDomain = [],
+    operator: string = "ilike",
+    limit: number = 10
+  ): Promise<unknown[]> {
+    return (await this.execute(
+      model,
+      "name_search",
+      [name],
+      { domain, operator, limit }
+    )) as unknown[];
+  }
+
   async readGroup(
     model: string,
     domain: OdooDomain = [],
