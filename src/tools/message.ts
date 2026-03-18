@@ -61,7 +61,7 @@ export const postMessageTool = {
   inputSchema: {
     model: z.string().describe("Model name (e.g., 'account.move')"),
     id: z.number().describe("Record ID"),
-    body: z.string().describe("Message body (HTML supported)"),
+    body: z.string().describe("Message body in HTML format (e.g., '<p>내용</p>')"),
     message_type: z
       .string()
       .optional()
@@ -89,6 +89,7 @@ export async function handlePostMessage(
     [[id]],
     {
       body,
+      body_is_html: true,
       message_type: messageType,
       subtype_xmlid: subtypeXmlid,
     }
