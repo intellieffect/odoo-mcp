@@ -88,19 +88,23 @@ export const downloadAttachmentTool = {
   },
 };
 
+const MAX_DOWNLOAD_SIZE_MB = 25;
+const MAX_DOWNLOAD_SIZE_BYTES = MAX_DOWNLOAD_SIZE_MB * 1024 * 1024;
+
 export async function handleDownloadAttachment(
   odoo: OdooClient,
   args: Record<string, unknown>
 ) {
   const id = args.id as number;
-  const records = await odoo.read("ir.attachment", [id], [
+
+  // 먼저 메타데이터만 조회하여 파일 크기 확인
+  const metaRecords = (await odoo.read("ir.attachment", [id], [
     "name",
     "mimetype",
     "file_size",
-    "datas",
-  ]);
+  ])) as Record<string, unknown>[];
 
-  if (!records || records.length === 0) {
+  if (!metaRecords || metaRecords.length === 0) {
     return {
       content: [
         {
@@ -112,7 +116,39 @@ export async function handleDownloadAttachment(
     };
   }
 
-  const att = records[0] as Record<string, unknown>;
+  const meta = metaRecords[0];
+  const fileSize = meta.file_size as number;
+
+  if (fileSize > MAX_DOWNLOAD_SIZE_BYTES) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              error: `파일이 너무 큽니다 (${(fileSize / 1024 / 1024).toFixed(1)}MB). 최대 ${MAX_DOWNLOAD_SIZE_MB}MB까지 다운로드 가능합니다`,
+              id,
+              name: meta.name,
+              file_size: fileSize,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  // 크기 확인 후 실제 데이터 조회
+  const records = (await odoo.read("ir.attachment", [id], [
+    "name",
+    "mimetype",
+    "file_size",
+    "datas",
+  ])) as Record<string, unknown>[];
+
+  const att = records[0];
   return {
     content: [
       {

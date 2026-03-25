@@ -14,45 +14,51 @@ export const createRecordTool = {
   },
 };
 
+const MAX_BATCH_SIZE = 100;
+
 export async function handleCreateRecord(
   client: OdooClient,
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const values = JSON.parse(args.values as string);
 
-  if (Array.isArray(values)) {
-    // Batch create — track partial failures
-    const ids: number[] = [];
-    const errors: Array<{ index: number; error: string }> = [];
-    for (let i = 0; i < values.length; i++) {
-      try {
-        ids.push(await client.create(model, values[i]));
-      } catch (err) {
-        errors.push({ index: i, error: (err as Error).message });
-      }
-    }
-    const result: Record<string, unknown> = {
-      success: errors.length === 0,
-      created: ids.length,
-      total: values.length,
-      ids,
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(args.values as string);
+  } catch {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "values JSON 파싱 실패. 올바른 JSON을 입력하세요" }, null, 2) }],
+      isError: true,
     };
-    if (errors.length > 0) {
-      result.errors = errors;
+  }
+
+  if (Array.isArray(parsed)) {
+    if (parsed.length === 0) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "빈 배열입니다. 생성할 레코드를 입력하세요" }, null, 2) }],
+        isError: true,
+      };
     }
+    if (parsed.length > MAX_BATCH_SIZE) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: `배치 생성은 최대 ${MAX_BATCH_SIZE}건까지 가능합니다. 요청: ${parsed.length}건` }, null, 2) }],
+        isError: true,
+      };
+    }
+
+    // Odoo 네이티브 배치 create — 단일 RPC 호출로 N건 생성
+    const ids = await client.createBatch(model, parsed as Record<string, unknown>[]);
     return {
       content: [
         {
           type: "text" as const,
-          text: JSON.stringify(result, null, 2),
+          text: JSON.stringify({ success: true, count: ids.length, ids }, null, 2),
         },
       ],
-      ...(errors.length > 0 ? { isError: true } : {}),
     };
   }
 
-  const id = await client.create(model, values);
+  const id = await client.create(model, parsed as Record<string, unknown>);
   return {
     content: [
       {

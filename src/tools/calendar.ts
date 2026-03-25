@@ -36,11 +36,14 @@ export async function handleSearchCalendar(
   let domain = [...extraDomain];
 
   if (!allEvents) {
-    // Get current user's partner_id
-    const users = await odoo.read("res.users", [odoo.getUid()], ["partner_id"]);
+    // 주최자(user_id)이거나 참석자(partner_ids)에 포함된 일정 모두 반환
+    const uid = odoo.getUid();
+    const users = await odoo.read("res.users", [uid], ["partner_id"]);
     if (users && users.length > 0) {
       const user = users[0] as Record<string, unknown>;
       const partnerId = (user.partner_id as [number, string])[0];
+      domain.push("|");
+      domain.push(["user_id", "=", uid]);
       domain.push(["partner_ids", "in", [partnerId]]);
     }
   }

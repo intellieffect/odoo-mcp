@@ -201,6 +201,13 @@ export class OdooClient {
     return (await this.execute(model, "create", [values])) as number;
   }
 
+  async createBatch(
+    model: string,
+    valuesList: Record<string, unknown>[]
+  ): Promise<number[]> {
+    return (await this.execute(model, "create", [valuesList])) as number[];
+  }
+
   async update(
     model: string,
     ids: number[],
