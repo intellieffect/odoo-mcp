@@ -28,7 +28,7 @@ export const searchRecordsTool = {
     include_total: z
       .boolean()
       .optional()
-      .describe("Include total_count and has_more in response. Default: true. Set false to skip count query for performance."),
+      .describe("Include total_count via count query. Default: false (uses limit+1 for has_more). Set true when exact total is needed."),
   },
 };
 
@@ -39,15 +39,27 @@ export async function handleSearchRecords(
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const domain = args.domain ? JSON.parse(args.domain as string) : [];
+
+  let domain: unknown[] = [];
+  if (args.domain) {
+    try {
+      domain = JSON.parse(args.domain as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+  }
+
   const fields = args.fields
     ? (args.fields as string).split(",").map((f) => f.trim())
     : DEFAULT_FIELDS;
   const limit = (args.limit as number) ?? 80;
-  const offset = args.offset as number | undefined;
+  const offset = (args.offset as number) ?? 0;
   const order = args.order as string | undefined;
 
-  const includeTotal = (args.include_total as boolean) ?? true;
+  const includeTotal = (args.include_total as boolean) ?? false;
 
   if (includeTotal) {
     const [records, totalCount] = await Promise.all([
@@ -60,8 +72,10 @@ export async function handleSearchRecords(
           type: "text" as const,
           text: JSON.stringify({
             count: records.length,
+            offset,
+            limit,
             total_count: totalCount,
-            has_more: (offset ?? 0) + records.length < totalCount,
+            has_more: offset + records.length < totalCount,
             records,
           }, null, 2),
         },
@@ -69,12 +83,22 @@ export async function handleSearchRecords(
     };
   }
 
-  const records = await client.searchRead(model, domain, fields, limit, offset, order);
+  // limit+1 트릭으로 has_more 판단 — count RPC 호출 불필요
+  const records = (await client.searchRead(model, domain, fields, limit + 1, offset, order)) as unknown[];
+  const hasMore = records.length > limit;
+  if (hasMore) records.pop();
+
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify({ count: records.length, records }, null, 2),
+        text: JSON.stringify({
+          count: records.length,
+          offset,
+          limit,
+          has_more: hasMore,
+          records,
+        }, null, 2),
       },
     ],
   };
