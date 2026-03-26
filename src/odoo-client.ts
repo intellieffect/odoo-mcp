@@ -36,7 +36,7 @@ function call(
       reject(new Error(`XML-RPC request timed out after ${timeout}ms`));
     }, timeout);
 
-    client.methodCall(method, params, (err: Error | null, value: unknown) => {
+    client.methodCall(method, params, (err: unknown, value: unknown) => {
       clearTimeout(timer);
       if (err) reject(err);
       else resolve(value);

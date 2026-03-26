@@ -20,9 +20,12 @@ async function main() {
 
   let timeout: number | undefined;
   if (process.env.ODOO_TIMEOUT) {
-    const parsed = parseInt(process.env.ODOO_TIMEOUT);
-    if (isNaN(parsed) || parsed <= 0) {
-      console.error("ODOO_TIMEOUT must be a positive number (seconds). Got:", process.env.ODOO_TIMEOUT);
+    const parsed = Number(process.env.ODOO_TIMEOUT.trim());
+    if (!Number.isInteger(parsed) || parsed <= 0) {
+      console.error(
+        "ODOO_TIMEOUT must be a positive integer (seconds). Got:",
+        process.env.ODOO_TIMEOUT
+      );
       process.exit(1);
     }
     timeout = parsed * 1000;
@@ -96,3 +99,4 @@ main().catch((err) => {
   console.error("Fatal error:", err);
   process.exit(1);
 });
+

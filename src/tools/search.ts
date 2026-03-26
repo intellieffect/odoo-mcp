@@ -19,8 +19,8 @@ export const searchRecordsTool = {
       .describe(
         'Comma-separated field names to return (e.g., "name,email,phone"). Default: all fields'
       ),
-    limit: z.number().optional().describe("Maximum number of records to return. Default: 80"),
-    offset: z.number().optional().describe("Number of records to skip. Default: 0"),
+    limit: z.number().int().positive().optional().describe("Maximum number of records to return. Must be a positive integer. Default: 80"),
+    offset: z.number().int().min(0).optional().describe("Number of records to skip. Must be a non-negative integer. Default: 0"),
     order: z
       .string()
       .optional()
@@ -51,3 +51,4 @@ export async function handleSearchRecords(
     ],
   };
 }
+

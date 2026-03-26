@@ -19,7 +19,14 @@ export async function handleReadRecord(
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const ids = (args.ids as string).split(",").map((id) => parseInt(id.trim()));
+  const rawIds = (args.ids as string).split(",").map((id) => id.trim());
+  const ids = rawIds.map((id) => {
+    const n = Number(id);
+    if (!Number.isInteger(n) || n <= 0) {
+      throw new Error(`Invalid record ID: "${id}". IDs must be positive integers.`);
+    }
+    return n;
+  });
   const fields = args.fields
     ? (args.fields as string).split(",").map((f) => f.trim())
     : undefined;
@@ -34,3 +41,4 @@ export async function handleReadRecord(
     ],
   };
 }
+

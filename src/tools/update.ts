@@ -18,7 +18,14 @@ export async function handleUpdateRecord(
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const ids = (args.ids as string).split(",").map((id) => parseInt(id.trim()));
+  const rawIds = (args.ids as string).split(",").map((id) => id.trim());
+  const ids = rawIds.map((id) => {
+    const n = Number(id);
+    if (!Number.isInteger(n) || n <= 0) {
+      throw new Error(`Invalid record ID: "${id}". IDs must be positive integers.`);
+    }
+    return n;
+  });
   const values = JSON.parse(args.values as string);
 
   const result = await client.update(model, ids, values);
@@ -31,3 +38,4 @@ export async function handleUpdateRecord(
     ],
   };
 }
+
