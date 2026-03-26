@@ -25,9 +25,11 @@ export const getMessagesTool = {
     model: z
       .string()
       .describe("Odoo model name (e.g., 'sale.order', 'res.partner')"),
-    res_id: z.number().describe("Record ID to get messages for"),
+    res_id: z.number().int().positive().describe("Record ID to get messages for"),
     limit: z
       .number()
+      .int()
+      .positive()
       .optional()
       .describe("Maximum number of messages to return. Default: 20"),
     message_type: z
@@ -110,7 +112,7 @@ export const postMessageTool = {
     model: z
       .string()
       .describe("Odoo model name (e.g., 'sale.order', 'res.partner')"),
-    res_id: z.number().describe("Record ID to post the message on"),
+    res_id: z.number().int().positive().describe("Record ID to post the message on"),
     body: z.string().describe("Message body (HTML supported)"),
     message_type: z
       .string()
