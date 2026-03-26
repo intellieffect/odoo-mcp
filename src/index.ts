@@ -13,6 +13,7 @@ import { getFieldsTool, handleGetFields } from "./tools/fields.js";
 import { searchGroupedTool, handleSearchGrouped } from "./tools/group.js";
 import { executeMethodTool, handleExecuteMethod } from "./tools/execute.js";
 import { nameSearchTool, handleNameSearch } from "./tools/name-search.js";
+import { getMessagesTool, handleGetMessages, postMessageTool, handlePostMessage } from "./tools/message.js";
 
 async function main() {
   const url = process.env.ODOO_URL;
@@ -73,6 +74,8 @@ async function main() {
     { def: searchGroupedTool, handler: handleSearchGrouped },
     { def: executeMethodTool, handler: handleExecuteMethod },
     { def: nameSearchTool, handler: handleNameSearch },
+    { def: getMessagesTool, handler: handleGetMessages },
+    { def: postMessageTool, handler: handlePostMessage },
   ];
 
   for (const { def, handler } of tools) {
