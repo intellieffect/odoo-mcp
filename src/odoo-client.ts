@@ -235,7 +235,7 @@ export class OdooClient {
   async nameSearch(
     model: string,
     name: string = "",
-    domain: OdooDomain = [],
+    domain: unknown[] = [],
     operator: string = "ilike",
     limit: number = 10
   ): Promise<unknown> {

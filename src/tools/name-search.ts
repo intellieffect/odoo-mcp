@@ -41,14 +41,22 @@ export async function handleNameSearch(
 
   let domain: unknown[] = [];
   if (args.domain) {
+    let parsed: unknown;
     try {
-      domain = JSON.parse(args.domain as string);
+      parsed = JSON.parse(args.domain as string);
     } catch {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
         isError: true,
       };
     }
+    if (!Array.isArray(parsed)) {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "domain은 JSON 배열이어야 합니다 (예: [[\"is_company\",\"=\",true]])" }, null, 2) }],
+        isError: true,
+      };
+    }
+    domain = parsed;
   }
 
   const result = await client.nameSearch(model, name, domain, operator, limit);
