@@ -129,6 +129,16 @@ export class OdooClient {
     ], this.timeoutMs);
   }
 
+  async executeMethod(
+    model: string,
+    method: string,
+    ids: number[],
+    args: unknown[] = [],
+    kwargs: Record<string, unknown> = {}
+  ): Promise<unknown> {
+    return this.execute(model, method, [ids, ...args], kwargs);
+  }
+
   async searchRead(
     model: string,
     domain: OdooDomain = [],
