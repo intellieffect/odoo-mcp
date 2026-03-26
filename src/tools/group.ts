@@ -93,7 +93,6 @@ export async function handleSearchGrouped(
     lazy
   );
 
-  const groups = result as unknown[];
   return {
     content: [
       {
@@ -101,9 +100,9 @@ export async function handleSearchGrouped(
         text: JSON.stringify(
           {
             model,
-            group_count: groups.length,
-            ...(groups.length === 0 ? { message: "조건에 맞는 그룹이 없습니다" } : {}),
-            groups,
+            group_count: result.length,
+            ...(result.length === 0 ? { message: "조건에 맞는 그룹이 없습니다" } : {}),
+            groups: result,
           },
           null,
           2
