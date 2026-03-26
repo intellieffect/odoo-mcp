@@ -18,8 +18,24 @@ export async function handleUpdateRecord(
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const ids = (args.ids as string).split(",").map((id) => parseInt(id.trim()));
-  const values = JSON.parse(args.values as string);
+  const rawIds = (args.ids as string).split(",").map((id) => id.trim());
+  const ids = rawIds.map((id) => {
+    const n = Number(id);
+    if (!Number.isInteger(n) || n <= 0) {
+      throw new Error(`Invalid record ID: "${id}". IDs must be positive integers.`);
+    }
+    return n;
+  });
+  let values: Record<string, unknown>;
+  try {
+    values = JSON.parse(args.values as string);
+  } catch {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "values JSON 파싱 실패. 올바른 JSON을 입력하세요" }, null, 2) }],
+      isError: true,
+    };
+  }
+
 
   const result = await client.update(model, ids, values);
   return {
@@ -31,3 +47,4 @@ export async function handleUpdateRecord(
     ],
   };
 }
+

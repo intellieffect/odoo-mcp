@@ -5,6 +5,8 @@ import type {
   OdooDomain,
 } from "./types.js";
 
+const DEFAULT_TIMEOUT_MS = 30000;
+
 function createClient(url: string, path: string) {
   const parsed = new URL(path, url);
   const isSecure = parsed.protocol === "https:";
@@ -25,10 +27,17 @@ function createClient(url: string, path: string) {
 function call(
   client: xmlrpc.Client,
   method: string,
-  params: unknown[]
+  params: unknown[],
+  timeoutMs?: number
 ): Promise<unknown> {
+  const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
   return new Promise((resolve, reject) => {
-    client.methodCall(method, params, (err: Error | null, value: unknown) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`XML-RPC request timed out after ${timeout}ms`));
+    }, timeout);
+
+    client.methodCall(method, params, (err: any, value: any) => {
+      clearTimeout(timer);
       if (err) reject(err);
       else resolve(value);
     });
@@ -38,9 +47,11 @@ function call(
 export class OdooClient {
   private config: OdooConfig | null = null;
   private params: OdooConnectionParams;
+  private timeoutMs: number;
 
-  constructor(params: OdooConnectionParams) {
+  constructor(params: OdooConnectionParams, timeoutMs?: number) {
     this.params = params;
+    this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
   }
 
   async connect(): Promise<void> {
@@ -54,7 +65,7 @@ export class OdooClient {
         user || "",
         apiKey,
         {},
-      ])) as number;
+      ], this.timeoutMs)) as number;
 
       if (!uid) {
         throw new Error(
@@ -70,7 +81,7 @@ export class OdooClient {
         user,
         password,
         {},
-      ])) as number;
+      ], this.timeoutMs)) as number;
 
       if (!uid) {
         throw new Error(
@@ -107,7 +118,7 @@ export class OdooClient {
       method,
       args,
       kwargs,
-    ]);
+    ], this.timeoutMs);
   }
 
   async searchRead(

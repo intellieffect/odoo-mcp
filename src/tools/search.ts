@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
+import type { OdooDomain } from "../types.js";
 
 export const searchRecordsTool = {
   name: "search_records",
@@ -19,8 +20,8 @@ export const searchRecordsTool = {
       .describe(
         'Comma-separated field names to return (e.g., "name,email,phone"). Default: all fields'
       ),
-    limit: z.number().optional().describe("Maximum number of records to return. Default: 80"),
-    offset: z.number().optional().describe("Number of records to skip. Default: 0"),
+    limit: z.number().int().positive().optional().describe("Maximum number of records to return. Must be a positive integer. Default: 80"),
+    offset: z.number().int().min(0).optional().describe("Number of records to skip. Must be a non-negative integer. Default: 0"),
     order: z
       .string()
       .optional()
@@ -33,7 +34,18 @@ export async function handleSearchRecords(
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const domain = args.domain ? JSON.parse(args.domain as string) : [];
+  let domain: OdooDomain = [];
+  if (args.domain) {
+    try {
+      domain = JSON.parse(args.domain as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+  }
+
   const fields = args.fields
     ? (args.fields as string).split(",").map((f) => f.trim())
     : undefined;
@@ -51,3 +63,4 @@ export async function handleSearchRecords(
     ],
   };
 }
+
