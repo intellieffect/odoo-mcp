@@ -33,7 +33,19 @@ export async function handleWhoami(
     1
   )) as Array<Record<string, unknown>>;
 
-  const user = users[0] || {};
+  if (!users || users.length === 0) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ error: "Could not read current user info" }, null, 2),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  const user = users[0] as Record<string, unknown>;
 
   // 권한 그룹 이름 조회 — 앱 수준 그룹만 (full_name에 "/"가 포함된 것 = 앱/역할 그룹)
   const groupIds = (user.group_ids as number[]) || [];
@@ -67,8 +79,10 @@ export async function handleWhoami(
             lang: user.lang,
             tz: user.tz,
             groups: groups,
+            url: client.getUrl(),
             server: {
               version: version.server_version,
+              version_info: version.server_version_info,
               protocol_version: version.protocol_version,
             },
             database: client.getDatabase(),

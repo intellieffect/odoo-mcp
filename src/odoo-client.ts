@@ -129,6 +129,10 @@ export class OdooClient {
     return this.config.db;
   }
 
+  getUrl(): string {
+    return this.params.url;
+  }
+
   private getCommonClient() {
     if (!this.commonClient) {
       this.commonClient = createClient(this.params.url, "/xmlrpc/2/common");
