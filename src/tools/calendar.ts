@@ -95,7 +95,7 @@ export async function handleSearchCalendar(
         type: "text" as const,
         text: JSON.stringify(
           {
-            count: (records as unknown[]).length,
+            count: records.length,
             filter: allEvents ? "전체 일정" : "내 일정만",
             records,
           },
