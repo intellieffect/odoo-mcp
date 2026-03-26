@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
+import type { OdooDomain } from "../types.js";
 
 export const listModelsTool = {
   name: "list_models",
@@ -29,7 +30,7 @@ export async function handleListModels(
   const includeTransient = (args.include_transient as boolean) ?? false;
 
   // 서버사이드 필터링 domain 구성
-  const domain: unknown[] = [];
+  const domain: OdooDomain = [];
   if (!includeTransient) {
     domain.push(["transient", "=", false]);
   }

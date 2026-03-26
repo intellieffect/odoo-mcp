@@ -28,6 +28,10 @@ export const searchRecordsTool = {
       .string()
       .optional()
       .describe('Sort order (e.g., "name asc", "create_date desc")'),
+    include_total: z
+      .boolean()
+      .optional()
+      .describe("true이면 정확한 총 레코드 수(total_count)를 반환. 추가 RPC 호출 발생. 기본값: false"),
   },
 };
 
@@ -55,11 +59,27 @@ export async function handleSearchRecords(
   const limit = (args.limit as number) ?? 80;
   const offset = (args.offset as number) ?? 0;
   const order = args.order as string | undefined;
+  const includeTotal = (args.include_total as boolean) ?? false;
 
-  // limit+1로 조회하여 has_more 판단 (count RPC 호출 제거)
-  const records = (await client.searchRead(model, domain, fields, limit + 1, offset, order)) as unknown[];
-  const hasMore = records.length > limit;
-  if (hasMore) records.pop(); // 초과분 제거
+  let records: unknown[];
+  let hasMore: boolean;
+  let totalCount: number | undefined;
+
+  if (includeTotal) {
+    // include_total=true: searchRead + count 병렬 호출
+    const [searchResult, countResult] = await Promise.all([
+      client.searchRead(model, domain, fields, limit, offset, order),
+      client.count(model, domain),
+    ]);
+    records = searchResult as unknown[];
+    totalCount = countResult;
+    hasMore = offset + records.length < totalCount;
+  } else {
+    // include_total=false: limit+1 트릭으로 has_more 판단 (count RPC 호출 제거)
+    records = (await client.searchRead(model, domain, fields, limit + 1, offset, order)) as unknown[];
+    hasMore = records.length > limit;
+    if (hasMore) records.pop();
+  }
 
   return {
     content: [
@@ -67,6 +87,7 @@ export async function handleSearchRecords(
         type: "text" as const,
         text: JSON.stringify({
           count: records.length,
+          ...(totalCount !== undefined ? { total_count: totalCount } : {}),
           offset,
           limit,
           has_more: hasMore,
