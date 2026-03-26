@@ -54,7 +54,7 @@ export async function handleCreateRecord(
         {
           type: "text" as const,
           text: JSON.stringify(
-            { success: true, count: (ids as number[]).length, ids },
+            { success: true, count: ids.length, ids },
             null,
             2
           ),
