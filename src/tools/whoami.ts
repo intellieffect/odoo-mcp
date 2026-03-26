@@ -1,4 +1,3 @@
-import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
 
 export const whoamiTool = {
