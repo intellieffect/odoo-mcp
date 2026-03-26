@@ -37,6 +37,7 @@ export async function handleUpdateRecord(
   }
 
 
+
   const result = await client.update(model, ids, values);
   return {
     content: [
