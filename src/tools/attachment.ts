@@ -36,8 +36,19 @@ export async function handleListAttachments(
 ) {
   const model = args.model as string | undefined;
   const resId = args.res_id as number | undefined;
-  const extraDomain = args.domain ? JSON.parse(args.domain as string) : [];
   const limit = (args.limit as number) ?? 20;
+
+  let extraDomain: OdooDomain = [];
+  if (args.domain) {
+    try {
+      extraDomain = JSON.parse(args.domain as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+  }
 
   const domain: OdooDomain = [...extraDomain];
   if (model) domain.push(["res_model", "=", model]);
@@ -66,7 +77,7 @@ export async function handleListAttachments(
       {
         type: "text" as const,
         text: JSON.stringify(
-          { count: (attachments as unknown[]).length, attachments },
+          { count: attachments.length, attachments },
           null,
           2
         ),
