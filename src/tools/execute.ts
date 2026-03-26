@@ -33,21 +33,28 @@ export const executeMethodTool = {
 };
 
 export async function handleExecuteMethod(
-  odoo: OdooClient,
-  params: Record<string, unknown>
+  client: OdooClient,
+  args: Record<string, unknown>
 ) {
-  const model = params.model as string;
-  const method = params.method as string;
-  const ids = (params.ids as string).split(",").map((s) => {
+  const model = args.model as string;
+  const method = args.method as string;
+  const ids = (args.ids as string).split(",").map((s) => {
     const id = parseInt(s.trim(), 10);
     if (isNaN(id)) throw new Error(`Invalid record ID: "${s.trim()}"`);
     return id;
   });
 
-  let args: unknown[] = [];
-  if (params.args) {
-    args = JSON.parse(params.args as string);
-    if (!Array.isArray(args)) {
+  let extraArgs: unknown[] = [];
+  if (args.args) {
+    try {
+      extraArgs = JSON.parse(args.args as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "args JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+    if (!Array.isArray(extraArgs)) {
       return {
         content: [
           {
@@ -61,9 +68,16 @@ export async function handleExecuteMethod(
   }
 
   let kwargs: Record<string, unknown> = {};
-  if (params.kwargs) {
-    kwargs = JSON.parse(params.kwargs as string);
-    if (typeof kwargs !== "object" || Array.isArray(kwargs)) {
+  if (args.kwargs) {
+    try {
+      kwargs = JSON.parse(args.kwargs as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "kwargs JSON 파싱 실패. 올바른 JSON 객체를 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+    if (kwargs === null || typeof kwargs !== "object" || Array.isArray(kwargs)) {
       return {
         content: [
           {
@@ -78,7 +92,7 @@ export async function handleExecuteMethod(
 
   let result: unknown;
   try {
-    result = await odoo.executeMethod(model, method, ids, args, kwargs);
+    result = await client.executeMethod(model, method, ids, extraArgs, kwargs);
   } catch (err) {
     const msg = (err as Error).message || "";
     if (msg.includes("cannot marshal None")) {
