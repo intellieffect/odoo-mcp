@@ -12,6 +12,7 @@ function stripHtml(html: string): string {
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -92,7 +93,7 @@ export async function handleGetMessages(
       {
         type: "text" as const,
         text: JSON.stringify(
-          { model, res_id: resId, count: (processed as unknown[]).length, messages: processed },
+          { model, res_id: resId, count: processed.length, messages: processed },
           null,
           2
         ),
