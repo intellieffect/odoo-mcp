@@ -18,10 +18,10 @@ export const nameSearchTool = {
         'Additional domain filter as JSON array (e.g., \'[["is_company","=",true]]\'). Default: []'
       ),
     operator: z
-      .string()
+      .enum(["ilike", "like", "=", "not ilike", "not like", "=like", "=ilike"])
       .optional()
       .describe(
-        "Comparison operator for name matching: 'ilike', 'like', '=', 'not ilike', etc. Default: 'ilike'"
+        "Comparison operator for name matching. Default: 'ilike'"
       ),
     limit: z
       .number()
