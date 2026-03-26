@@ -2,10 +2,12 @@ import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
 import type { OdooDomain } from "../types.js";
 
+const DEFAULT_FIELDS = ["id", "name", "display_name"];
+
 export const searchRecordsTool = {
   name: "search_records",
   description:
-    "Search and read records from an Odoo model with optional domain filters, field selection, pagination, and ordering.",
+    "Search and read records from an Odoo model. If fields is not specified, only id/name/display_name are returned to keep response compact. Always specify the fields you need.",
   inputSchema: {
     model: z.string().describe("Odoo model name (e.g., 'res.partner', 'sale.order')"),
     domain: z
@@ -18,7 +20,7 @@ export const searchRecordsTool = {
       .string()
       .optional()
       .describe(
-        'Comma-separated field names to return (e.g., "name,email,phone"). Default: all fields'
+        'Comma-separated field names to return (e.g., "name,email,phone"). Default: "id,name,display_name". Specify fields to get relevant data'
       ),
     limit: z.number().int().positive().optional().describe("Maximum number of records to return. Must be a positive integer. Default: 80"),
     offset: z.number().int().min(0).optional().describe("Number of records to skip. Must be a non-negative integer. Default: 0"),
@@ -26,6 +28,10 @@ export const searchRecordsTool = {
       .string()
       .optional()
       .describe('Sort order (e.g., "name asc", "create_date desc")'),
+    include_total: z
+      .boolean()
+      .optional()
+      .describe("true이면 정확한 총 레코드 수(total_count)를 반환. 추가 RPC 호출 발생. 기본값: false"),
   },
 };
 
@@ -46,19 +52,48 @@ export async function handleSearchRecords(
     }
   }
 
+  const fieldsSpecified = !!args.fields;
   const fields = args.fields
     ? (args.fields as string).split(",").map((f) => f.trim())
-    : undefined;
+    : DEFAULT_FIELDS;
   const limit = (args.limit as number) ?? 80;
-  const offset = args.offset as number | undefined;
+  const offset = (args.offset as number) ?? 0;
   const order = args.order as string | undefined;
+  const includeTotal = (args.include_total as boolean) ?? false;
 
-  const records = await client.searchRead(model, domain, fields, limit, offset, order);
+  let records: unknown[];
+  let hasMore: boolean;
+  let totalCount: number | undefined;
+
+  if (includeTotal) {
+    // include_total=true: searchRead + count 병렬 호출
+    const [searchResult, countResult] = await Promise.all([
+      client.searchRead(model, domain, fields, limit, offset, order),
+      client.count(model, domain),
+    ]);
+    records = searchResult as unknown[];
+    totalCount = countResult;
+    hasMore = offset + records.length < totalCount;
+  } else {
+    // include_total=false: limit+1 트릭으로 has_more 판단 (count RPC 호출 제거)
+    records = (await client.searchRead(model, domain, fields, limit + 1, offset, order)) as unknown[];
+    hasMore = records.length > limit;
+    if (hasMore) records.pop();
+  }
+
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify({ count: records.length, records }, null, 2),
+        text: JSON.stringify({
+          count: records.length,
+          ...(totalCount !== undefined ? { total_count: totalCount } : {}),
+          offset,
+          limit,
+          has_more: hasMore,
+          ...(!fieldsSpecified ? { notice: "fields 미지정 — 기본 필드(id,name,display_name)만 반환됨. 필요한 필드를 지정하세요" } : {}),
+          records,
+        }, null, 2),
       },
     ],
   };
