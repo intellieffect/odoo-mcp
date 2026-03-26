@@ -50,10 +50,27 @@ export class OdooClient {
   private timeoutMs: number;
   private objectClient: xmlrpc.Client | null = null;
   private commonClient: xmlrpc.Client | null = null;
+  private _partnerId: number | null = null;
 
   constructor(params: OdooConnectionParams, timeoutMs?: number) {
     this.params = params;
     this.timeoutMs = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  }
+
+  get uid(): number {
+    if (!this.config) throw new Error("Not connected. Call connect() first.");
+    return this.config.uid;
+  }
+
+  async getPartnerId(): Promise<number> {
+    if (this._partnerId) return this._partnerId;
+    const users = (await this.read("res.users", [this.uid], ["partner_id"])) as Record<string, unknown>[];
+    if (users.length > 0 && Array.isArray(users[0].partner_id)) {
+      this._partnerId = users[0].partner_id[0] as number;
+    } else {
+      throw new Error("현재 사용자의 partner_id를 조회할 수 없습니다");
+    }
+    return this._partnerId;
   }
 
   async connect(): Promise<void> {
