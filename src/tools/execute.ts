@@ -1,10 +1,21 @@
 import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
 
+// 전용 도구가 있는 위험한 메서드는 execute_method로 호출 불가
+// create_record, update_record, delete_record 도구를 사용할 것
+const BLOCKED_METHODS = new Set([
+  "create",
+  "write",
+  "unlink",
+  "copy",
+  "name_create",
+  "web_save",
+]);
+
 export const executeMethodTool = {
   name: "execute_method",
   description:
-    "Execute a method on Odoo model records. Used for workflow actions (action_confirm, action_post, button_validate, etc.) and custom business logic methods.",
+    "Execute a method on Odoo model records. Used for workflow actions (action_confirm, action_post, button_validate, etc.) and custom business logic methods. Note: create/write/unlink are blocked — use dedicated tools instead.",
   inputSchema: {
     model: z
       .string()
@@ -36,11 +47,56 @@ export async function handleExecuteMethod(
   client: OdooClient,
   args: Record<string, unknown>
 ) {
-  const model = args.model as string;
-  const method = args.method as string;
-  const ids = (args.ids as string).split(",").map((s) => {
-    const id = parseInt(s.trim(), 10);
-    if (isNaN(id)) throw new Error(`Invalid record ID: "${s.trim()}"`);
+  const model = (args.model as string).trim();
+  const method = (args.method as string).trim();
+
+  if (!model) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "model은 필수입니다" }, null, 2) }],
+      isError: true,
+    };
+  }
+
+  if (!method) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "method는 필수입니다" }, null, 2) }],
+      isError: true,
+    };
+  }
+
+  if (BLOCKED_METHODS.has(method)) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify(
+            {
+              error: `'${method}' 메서드는 execute_method로 호출할 수 없습니다. 전용 도구를 사용하세요: create_record, update_record, delete_record`,
+            },
+            null,
+            2
+          ),
+        },
+      ],
+      isError: true,
+    };
+  }
+
+  const idStrings = (args.ids as string)
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+
+  if (idStrings.length === 0) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "ids가 비어있습니다. 하나 이상의 레코드 ID를 입력하세요" }, null, 2) }],
+      isError: true,
+    };
+  }
+
+  const ids = idStrings.map((s) => {
+    const id = parseInt(s, 10);
+    if (isNaN(id) || id <= 0) throw new Error(`유효하지 않은 레코드 ID: "${s}"`);
     return id;
   });
 
