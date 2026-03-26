@@ -102,7 +102,6 @@ export async function handleSearchGrouped(
     lazy
   );
 
-  const groups = result as unknown[];
   return {
     content: [
       {
