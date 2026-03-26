@@ -34,6 +34,7 @@ export async function handleCountRecords(
   }
 
 
+
   const count = await client.count(model, domain);
   return {
     content: [
