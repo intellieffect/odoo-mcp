@@ -10,7 +10,8 @@ const DEFAULT_TIMEOUT_MS = 30000;
 function createClient(url: string, path: string, timeoutMs?: number) {
   const parsed = new URL(path, url);
   const isSecure = parsed.protocol === "https:";
-  const options: Record<string, unknown> = {
+  const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const options = {
     host: parsed.hostname,
     port: parsed.port
       ? parseInt(parsed.port)
@@ -18,21 +19,11 @@ function createClient(url: string, path: string, timeoutMs?: number) {
         ? 443
         : 80,
     path: parsed.pathname,
+    ...(timeout > 0 ? { timeout } : {}),
   };
-  const client = isSecure
+  return isSecure
     ? xmlrpc.createSecureClient(options)
     : xmlrpc.createClient(options);
-
-  // Set request timeout
-  const timeout = timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  if (timeout > 0) {
-    (client as unknown as Record<string, unknown>).options = {
-      ...((client as unknown as Record<string, Record<string, unknown>>).options || {}),
-      timeout,
-    };
-  }
-
-  return client;
 }
 
 function call(
