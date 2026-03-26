@@ -26,7 +26,16 @@ export async function handleUpdateRecord(
     }
     return n;
   });
-  const values = JSON.parse(args.values as string);
+  let values: Record<string, unknown>;
+  try {
+    values = JSON.parse(args.values as string);
+  } catch {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "values JSON 파싱 실패. 올바른 JSON을 입력하세요" }, null, 2) }],
+      isError: true,
+    };
+  }
+
 
   const result = await client.update(model, ids, values);
   return {

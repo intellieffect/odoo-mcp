@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { OdooClient } from "../odoo-client.js";
+import type { OdooDomain } from "../types.js";
 
 export const countRecordsTool = {
   name: "count_records",
@@ -20,7 +21,18 @@ export async function handleCountRecords(
   args: Record<string, unknown>
 ) {
   const model = args.model as string;
-  const domain = args.domain ? JSON.parse(args.domain as string) : [];
+  let domain: OdooDomain = [];
+  if (args.domain) {
+    try {
+      domain = JSON.parse(args.domain as string);
+    } catch {
+      return {
+        content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
+        isError: true,
+      };
+    }
+  }
+
 
   const count = await client.count(model, domain);
   return {
