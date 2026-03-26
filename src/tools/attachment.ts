@@ -26,7 +26,7 @@ export const listAttachmentsTool = {
     limit: z
       .number()
       .optional()
-      .describe("Maximum number of attachments to return. Default: 20"),
+      .describe("Maximum number of attachments to return. Default: 20, max: 200"),
   },
 };
 
@@ -36,12 +36,20 @@ export async function handleListAttachments(
 ) {
   const model = args.model as string | undefined;
   const resId = args.res_id as number | undefined;
-  const limit = (args.limit as number) ?? 20;
+  const rawLimit = (args.limit as number) ?? 20;
+  const limit = Math.min(Math.max(1, rawLimit), 200);
 
   let extraDomain: OdooDomain = [];
   if (args.domain) {
     try {
-      extraDomain = JSON.parse(args.domain as string);
+      const parsed = JSON.parse(args.domain as string);
+      if (!Array.isArray(parsed)) {
+        return {
+          content: [{ type: "text" as const, text: JSON.stringify({ error: "domain은 JSON 배열이어야 합니다" }, null, 2) }],
+          isError: true,
+        };
+      }
+      extraDomain = parsed as OdooDomain;
     } catch {
       return {
         content: [{ type: "text" as const, text: JSON.stringify({ error: "domain JSON 파싱 실패. 올바른 JSON 배열을 입력하세요" }, null, 2) }],
@@ -107,16 +115,50 @@ export const uploadAttachmentTool = {
   },
 };
 
-const BASE64_REGEX = /^[A-Za-z0-9+/\n\r]+=*$/;
+// 순수 base64 문자만 허용 (whitespace 제거 후), padding은 최대 2개
+const BASE64_REGEX = /^[A-Za-z0-9+/]*={0,2}$/;
+
+// 업로드 허용 최대 크기: 25MB (base64 인코딩 시 ~33.8MB)
+const MAX_UPLOAD_SIZE_MB = 25;
+const MAX_UPLOAD_BASE64_CHARS = Math.ceil(MAX_UPLOAD_SIZE_MB * 1024 * 1024 * (4 / 3));
+
+// 파일명 보안 검증: 경로 순회 및 위험 문자 차단
+const UNSAFE_FILENAME_REGEX = /[/\\:*?"<>|]/;
 
 export async function handleUploadAttachment(
   client: OdooClient,
   args: Record<string, unknown>
 ) {
+  const name = args.name as string;
   const data = args.data as string;
 
+  // 파일명 검증
+  if (!name || name.trim() === "") {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "파일명이 비어 있습니다" }, null, 2) }],
+      isError: true,
+    };
+  }
+  if (UNSAFE_FILENAME_REGEX.test(name) || name.includes("..")) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: "파일명에 허용되지 않는 문자가 포함되어 있습니다 (/, \\, .., :, *, ?, \", <, >, | 불가)" }, null, 2) }],
+      isError: true,
+    };
+  }
+
+  // base64 정규화: whitespace 제거
+  const cleanData = data.replace(/\s/g, "");
+
+  // 크기 제한 검증
+  if (cleanData.length > MAX_UPLOAD_BASE64_CHARS) {
+    return {
+      content: [{ type: "text" as const, text: JSON.stringify({ error: `파일이 너무 큽니다. 최대 ${MAX_UPLOAD_SIZE_MB}MB까지 업로드 가능합니다` }, null, 2) }],
+      isError: true,
+    };
+  }
+
   // base64 유효성 검증
-  if (!BASE64_REGEX.test(data.replace(/\s/g, ""))) {
+  if (!BASE64_REGEX.test(cleanData)) {
     return {
       content: [{ type: "text" as const, text: JSON.stringify({ error: "유효하지 않은 base64 데이터입니다" }, null, 2) }],
       isError: true,
@@ -124,10 +166,10 @@ export async function handleUploadAttachment(
   }
 
   const values: Record<string, unknown> = {
-    name: args.name,
+    name: name.trim(),
     res_model: args.model,
     res_id: args.res_id,
-    datas: data,
+    datas: cleanData,
     type: "binary",
   };
 
@@ -141,7 +183,7 @@ export async function handleUploadAttachment(
       {
         type: "text" as const,
         text: JSON.stringify(
-          { success: true, attachment_id: id, name: args.name },
+          { success: true, attachment_id: id, name: name.trim() },
           null,
           2
         ),
@@ -219,6 +261,18 @@ export async function handleDownloadAttachment(
     "file_size",
     "datas",
   ])) as Record<string, unknown>[];
+
+  if (!records || records.length === 0) {
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: JSON.stringify({ error: `첨부파일 ID ${id}를 찾을 수 없습니다` }, null, 2),
+        },
+      ],
+      isError: true,
+    };
+  }
 
   const attachment = records[0];
   return {
